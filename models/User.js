@@ -28,10 +28,6 @@ const UserSchema = new mongoose.Schema(
          required: [true, "Please provide password"],
          minlength: 6,
       },
-      dob: {
-         type: Date,
-         // required: [true, "Please provide date of birth"],
-      },
       location: {
          type: String,
          maxlength: 20,
@@ -51,7 +47,10 @@ const UserSchema = new mongoose.Schema(
          maxlength: 20,
          default: "About",
       },
-      isVerified: false,
+      isVerified: {
+         type: Boolean,
+         default: false
+      },
    },
    { timestamps: true }
 );

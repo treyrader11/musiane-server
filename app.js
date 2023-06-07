@@ -1,7 +1,6 @@
 //dependencies
 
-// require("dotenv/config");
-require("dotenv").config();
+require("dotenv/config");
 require("express-async-errors");
 const { clientURL } = require("./URI");
 const clientURI = process.env.FRONTEND_URL || clientURL;
@@ -22,8 +21,8 @@ const app = express();
 const server = require("http").createServer(app);
 const { Server } = require("socket.io");
 
+// const io = new Server(server, { cors: { origin: clientURL } });
 const io = new Server(server, { cors: { origin: clientURL } });
-// const io = new Server(server, { cors: { origin: clientURI } });
 
 const PORT = process.env.PORT || 5002;
 
@@ -54,7 +53,7 @@ app.use(xss());
 app.use(helmet());
 app.use(express.json());
 app.use(fileUpload({ useTempFiles: true }));
-app.use(cors({ origin: clientURL }));
+app.use(cors({ origin: clientURI }));
 app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	next();
@@ -90,7 +89,7 @@ io.on("connection", socket => {
 
 //routes
 
-app.use("/api/v1/auth", authorizationMiddleware, authRouter);
+app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/users", userRouter);
 app.use("/api/v1/posts", postRouter);
 app.use("/api/v1/chats", authorizationMiddleware, chatRouter);
