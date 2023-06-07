@@ -53,11 +53,11 @@ app.use(xss());
 app.use(helmet());
 app.use(express.json());
 app.use(fileUpload({ useTempFiles: true }));
-app.use(cors({ origin: clientURI }));
-app.use((req, res, next) => {
-	res.setHeader('Access-Control-Allow-Origin', '*');
-	next();
-});
+app.use(cors({ origin: clientURL }));
+// app.use((req, res, next) => {
+// 	res.setHeader('Access-Control-Allow-Origin', '*');
+// 	next();
+// });
 
 app.get("/", (req, res) => {
 	res.status(200).json({ message: "welcome" });
