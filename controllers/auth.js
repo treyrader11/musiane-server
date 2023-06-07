@@ -222,189 +222,194 @@ const login = async (req, res) => {
 };
 
 const loginWithGoogle = async (req, res) => {
-    const { userToken } = req.body;
-    const ticket = await client.verifyIdToken({
+    try {
+      const { userToken } = req.body;
+      const ticket = await client.verifyIdToken({
         idToken: userToken,
         audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const { name, email, email_verified, picture, sub } = payload;
-    const password = Date.now() + sub;
-    let user = await User.findOne({ email });
-      
-    if (!user) {
-		console.log("no user exist");
+      });
+      const payload = ticket.getPayload();
+      const { name, email, email_verified, picture, sub } = payload;
+      const password = Date.now() + sub;
+      let user = await User.findOne({ email });
+  
+      if (!user) {
+        console.log("no user exists");
         user = await User.create({
-            name,
-            email,
-            password,
-            profileImage: picture,
-            isVerified: email_verified,
+          name,
+          email,
+          password,
+          profileImage: picture,
+          isVerified: email_verified,
         });
-
         if (user) {
-			const token = user.createJWT();
-			const { _id: id, name, profileImage, role, isVerified } = user;
-			res.status(StatusCodes.CREATED).json({
-				id,
-				name,
-				profileImage,
-				role,
-                isVerified,
-                token,
-			});
-        };
-    }
-      
-    if (user) {
-		const token = user.createJWT();
-        const { _id: id, name, profileImage, role, isVerified } = user;
-		res.status(StatusCodes.OK).json({
-			id,
+          const token = user.createJWT();
+          const { _id: id, name, profileImage, role, isVerified } = user;
+          res.status(StatusCodes.CREATED).json({
+            id,
             name,
             profileImage,
             role,
             isVerified,
             token,
-		});
-    };
+          });
+        }
+      }
+  
+      if (user) {
+        const token = user.createJWT();
+        const { _id: id, name, profileImage, role, isVerified } = user;
+        res.status(StatusCodes.OK).json({
+          id,
+          name,
+          profileImage,
+          role,
+          isVerified,
+          token,
+        });
+      }
+    } catch (error) {
+      console.error("Error logging in with Google:", error);
+      res
+        .status(StatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ error: "Failed to login with Google. Please try again" });
+    }
 };
 
 const sendAutomatedEmail = async (req, res) => {
-	console.log("sendAutomatedEmail: req.body", req.body);
-	const { subject, send_to, reply_to, template, url } = req.body;
+    try {
+      const { subject, send_to, reply_to, template, url } = req.body;
+      if (!subject || !send_to || !reply_to || !template) throw new Error("Missing email parameter");
+      const user = await User.findOne({ email: send_to });
+      if (!user) throw new Error("User not found");
 
-    if (!subject || !send_to || !reply_to || !template) {
-        res.status(500);
-        throw new Error("Missing email parameter");
-    }
-
-    // Get user
-    const user = await User.findOne({ email: send_to });
-    if (!user) {
-        res.status(404);
-        throw new Error("User not found");
-    }
-
-    const sent_from = process.env.EMAIL_USER;
-    const name = user.name;
-    const link = `${process.env.FRONTEND_URL}${url}`;
-
-	try {
-        await sendEmail(subject, send_to, sent_from, reply_to, template, name, link);
-		res.status(StatusCodes.OK).json({ message: "Email sent" });
+      const sent_from = process.env.EMAIL_USER;
+      const name = user.name;
+      const link = `${process.env.FRONTEND_URL}${url}`;
+  
+      await sendEmail(subject, send_to, sent_from, reply_to, template, name, link);
+      res.status(StatusCodes.OK).json({ message: "Email sent" });
     } catch (error) {
-        res.status(500);
-        throw new Error("Email not sent. Please try again");
+        console.error("Error sending automated email:", error);
+        res.status(StatusCodes.INTERNAL_SERVER_ERROR).json({ error: "Email not sent. Please try again" });
     }
 };
-
-// const getUser = async (req, res) => {
-//     console.log("req.body", req.body)
-//     console.log('getUser called');
-//     const user = await User.findById(req.body._id);
-//     if (user) {
-//         res.status(200).json(user);
-//     } else {
-//         res.status(404);
-//         throw new Error("User not found");
-//     } 
-// };
 
 async function sendVerificationEmail(userId) {
-    const user = await User.findById(userId);
-    console.log("user being verified:", user);
+    try {
+        const user = await User.findById(userId);
+        console.log("user being verified:", user);
+  
+        if (user?.isVerified) {
+            console.log("user.isVerified", user.isVerified);
+            res.status(400);
+            throw new Error("User already verified");
+            //return; 
+        }
+        // Delete token if already exists
+        const token = await Token.findOne({ userId: user._id });
+        if (token) await token.deleteOne();
+  
+        const verificationToken = crypto.randomBytes(32).toString("hex") + user._id;
+        const verificationUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
+        const hashedToken = hashToken(verificationToken);
 
-    // if (!user) {
-    //     res.status(404);
-    //     throw new Error("User not found");
-    // }
-
-    if (user?.isVerified) {
-		console.log("user.isVerified", user.isVerified);
-        // res.status(400);
-        // throw new Error("User already verified");
-    }
-
-    // Delete token if already exists
-    let token = await Token.findOne({ userId: user._id});
-	console.log("token", token);
-
-    if (token) {
-        await token.deleteOne();
-    }
-
-    const verificationToken = crypto.randomBytes(32).toString("hex") + user._id;
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify/${verificationToken}`;
-
-    const hashedToken = hashToken(verificationToken);
-    await new Token({
-        userId: user._id,
-        vToken: hashedToken,
-        createdAt: Date.now(),
-        expiresAt: Date.now() + 60 * (60*10000) // 60 mins
-    }).save();
-
-    const subject = "Verify Your Account - Musiane";
-    const send_to = user.email;
-    const sent_from = process.env.EMAIL_USER;
-    const reply_to = "noreply@musiane.co";
-    const template = "verifyEmail";
-    const name = user.name;
-    const link = verificationUrl;
-
-	try {
-        await sendEmail(subject, send_to, sent_from, reply_to, template, name, link );
+        await new Token({
+            userId: user._id,
+            vToken: hashedToken,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 60 * (60 * 10000), // 60 mins
+        }).save();
+  
+        const subject = "Verify Your Account - Musiane";
+        const send_to = user.email;
+        const sent_from = process.env.EMAIL_USER;
+        const reply_to = "noreply@musiane.co";
+        const template = "verifyEmail";
+        const name = user.name;
+        const link = verificationUrl;
+  
+        await sendEmail(subject, send_to, sent_from, reply_to, template, name, link);
         console.log("Email sent!");
-		res.status(StatusCodes.OK).json({ message: "Verification email sent" });
-    } catch {
-        res.status(StatusCodes.BAD_REQUEST);
+        return { message: "Verification email sent" };
+        } catch (error) {
+        console.error("Error sending verification email:", error);
         throw new BadRequestError("Error sending email");
-        // throw new Error("Email not sent, please try again");
     }
-};
+}
+  
+// const verifyUser = async (req, res) => {
+// 	const { verificationToken } = req.params;
+//     console.log("verifyUser - req.params:", req.params)
 
-const verifyUser = async (req, res) => {
-	const { verificationToken } = req.params;
-    console.log("verifyUser - req.params:", req.params)
+//     const hashedToken = crypto
+//         .createHash("sha256")
+//         .update(verificationToken)
+//         .digest("hex");
 
-    const hashedToken = crypto
-        .createHash("sha256")
-        .update(verificationToken)
-        .digest("hex");
+//     const userToken = await Token.findOne({
+//         vToken: hashedToken,
+//         expiresAt: { $gt: Date.now() },
+//     });
 
-    const userToken = await Token.findOne({
-        vToken: hashedToken,
-        expiresAt: { $gt: Date.now() },
-    });
+//     if (!userToken) {
+//         res.status(404);
+//         throw new Error("Invalid or Expired Token!!!");
+//     }
 
-    if (!userToken) {
-        res.status(404);
-        throw new Error("Invalid or Expired Token!!!");
-    }
+//     const user = await User.findById(userToken.userId);
 
-    const user = await User.findOne({ _id: userToken.userId });
+//     if (user.isVerified) {
+//         res.status(400);
+//         throw new Error("User is already verified");
+//     }
 
-    if (user.isVerified) {
-        res.status(400);
-        throw new Error("User is already verified");
-    }
+// 	if (user) {
+//         user.isVerified = true;
+//         const verifiedUser = await user.save();
+//         console.log("verifiedUser.isVerified", verifiedUser.isVerified)
 
-	if (user) {
+//         res.status(200).json({ 
+//             message: "User is successfully verified", 
+//             isVerified: verifiedUser.isVerified,
+//         });
+//     } else {
+//         res.send(404);
+//         throw new Error("User not found"); 
+//     };
+//     //next();
+// };
+
+async function verifyUser(req, res) {
+    try {
+        const { verificationToken } = req.params;
+        console.log("verifyUser - req.params:", req.params);
+        const hashedToken = crypto
+            .createHash("sha256")
+            .update(verificationToken)
+            .digest("hex");
+        const userToken = await Token.findOne({
+            vToken: hashedToken,
+            expiresAt: { $gt: Date.now() },
+        });
+
+        if (!userToken) throw new Error("Invalid or expired token");
+        const user = await User.findById(userToken.userId);
+        if (!user) throw new Error("User not found");
+        if (user.isVerified) throw new Error("User is already verified");
+        
         user.isVerified = true;
         const verifiedUser = await user.save();
-        console.log("verifiedUser.isVerified", verifiedUser.isVerified)
-
-        res.status(200).json({ 
-            message: "User is successfully verified", 
+        console.log("verifiedUser.isVerified", verifiedUser.isVerified);
+        return res.status(200).json({
+            message: "User is successfully verified",
             isVerified: verifiedUser.isVerified,
         });
-    } else {
-        res.send(404);
-        throw new Error("User not found"); 
-    };
-    next();
-};
+    } catch (err) {
+        console.err("Error verifying user:", err);
+        return res.status(400).json({ err: "User verification failed" });
+    }
+}
 
 module.exports = { 
     register,

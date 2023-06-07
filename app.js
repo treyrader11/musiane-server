@@ -3,7 +3,6 @@
 require("dotenv/config");
 require("express-async-errors");
 const { clientURL } = require("./URI");
-const clientURI = process.env.FRONTEND_URL || clientURL;
 const fileUpload = require("express-fileupload");
 const express = require("express");
 const cloudinary = require("cloudinary").v2;
