@@ -34,7 +34,6 @@ const register = async (req, res) => {
 		profileImage,
 		isVerified,
 		role,
-        userAgent,
 	});
 };
 
@@ -212,6 +211,30 @@ const login = async (req, res) => {
     const isPasswordCorrect = await user.comparePassword(password);
 	if (!isPasswordCorrect) throw new AuthenticationError("It's Ezio's password!! Enter yours");
 
+    // Trigger 2FA for unknown userAgent/device
+    const ua = parser(req.headers["user-agent"]);
+    const userAgent = ua.ua;
+    console.log(userAgent);
+    const allowedDevice = user.userAgent.includes(userAgent);
+   
+    if (!allowedDevice) {
+        const loginCode = Math.floor(100000 + Math.random() * 900000);
+        console.log("access code:", loginCode);
+        const encryptedLoginCode = cryptr.encrypt(loginCode.toString());
+        // Delete token if it exists in DB
+        let userToken = await Token.findOne({ userId: user._id });
+        if (userToken) await userToken.deleteOne();
+   
+        // Save Access Token to DB
+        await new Token({
+            userId: user._id,
+            loginToken: encryptedLoginCode,
+            createdAt: Date.now(),
+            expiresAt: Date.now() + 60 * (60 * 1000) // Thirty minutes
+        }).save();
+        throw new BadRequestError("New device detected. To confirm it's you, please check your email for an access code");
+    }
+    
 	const { _id: id, name, profileImage, isVerified, role } = user;
 	const token = user.createJWT();
 	res.status(StatusCodes.OK).json({
