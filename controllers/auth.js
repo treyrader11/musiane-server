@@ -19,11 +19,13 @@ const cryptr = new Cryptr(process.env.CRYPTR_KEY);
 const register = async (req, res) => {
 	let user = await User.findOne({ email: req.body.email });
 	if (user) throw new BadRequestError("User already exists");
-	user = await User.create({ ...req.body });
+    const ua = parser(req.headers["user-agent"]);
+    const userAgent = [ua.ua];
+	user = await User.create({ ...req.body, userAgent });
 	const { _id: id, name, profileImage, isVerified, role } = user;
 	const token = user.createJWT();
 
-    //sendVerificationEmail(id);
+    await sendVerificationEmail(id);
 
 	res.status(StatusCodes.CREATED).json({
 		id,
@@ -32,6 +34,7 @@ const register = async (req, res) => {
 		profileImage,
 		isVerified,
 		role,
+        userAgent,
 	});
 };
 
@@ -204,9 +207,9 @@ const register = async (req, res) => {
 const login = async (req, res) => {
 	const { email, password } = req.body;
 	if (!email || !password) throw new BadRequestError("Please provide email and password");
-	const user = await User.findOne({ email: req.body.email });
+    const user = await User.findOne({ email });
 	if (!user) throw new NotFoundError("User doesn't exist");
-	const isPasswordCorrect = await user.comparePassword(req.body.password);
+    const isPasswordCorrect = await user.comparePassword(password);
 	if (!isPasswordCorrect) throw new AuthenticationError("It's Ezio's password!! Enter yours");
 
 	const { _id: id, name, profileImage, isVerified, role } = user;
@@ -223,56 +226,57 @@ const login = async (req, res) => {
 
 const loginWithGoogle = async (req, res) => {
     try {
-      const { userToken } = req.body;
-      const ticket = await client.verifyIdToken({
-        idToken: userToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      const { name, email, email_verified, picture, sub } = payload;
-      const password = Date.now() + sub;
-      let user = await User.findOne({ email });
-  
-      if (!user) {
-        console.log("no user exists");
-        user = await User.create({
-          name,
-          email,
-          password,
-          profileImage: picture,
-          isVerified: email_verified,
+        const { userToken } = req.body;
+        const ticket = await client.verifyIdToken({
+            idToken: userToken,
+            audience: process.env.GOOGLE_CLIENT_ID,
         });
-        if (user) {
-          const token = user.createJWT();
-          const { _id: id, name, profileImage, role, isVerified } = user;
-          res.status(StatusCodes.CREATED).json({
-            id,
-            name,
-            profileImage,
-            role,
-            isVerified,
-            token,
-          });
+        const payload = ticket.getPayload();
+        const { name, email, email_verified: isVerified, picture: profileImage, sub } = payload;
+        const password = Date.now() + sub;
+        let user = await User.findOne({ email });
+  
+        if (!user) {
+            console.log("no user exists");
+            user = await User.create({
+                name,
+                email,
+                password,
+                profileImage,
+                isVerified,
+            });
+            if (user) {
+                const { _id: id, name, profileImage, role, isVerified } = user;
+                const token = user.createJWT();
+
+                return res.status(StatusCodes.CREATED).json({
+                    id,
+                    token,
+                    name,
+                    profileImage,
+                    isVerified,
+                    role,
+                });
+            }
         }
-      }
   
-      if (user) {
-        const token = user.createJWT();
-        const { _id: id, name, profileImage, role, isVerified } = user;
-        res.status(StatusCodes.OK).json({
-          id,
-          name,
-          profileImage,
-          role,
-          isVerified,
-          token,
-        });
-      }
-    } catch (error) {
-      console.error("Error logging in with Google:", error);
-      res
+        if (user) {
+            const { _id: id, name, profileImage, role, isVerified } = user;
+            const token = user.createJWT();
+            return res.status(StatusCodes.OK).json({
+                id,
+                token,
+                name,
+                profileImage,
+                role,
+                isVerified,
+            });
+        }
+    } catch (err) {
+      console.error("Error logging in with Google:", err);
+      return res
         .status(StatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ error: "Failed to login with Google. Please try again" });
+        .json({ err: "Failed to login with Google. Please try again" });
     }
 };
 
@@ -295,16 +299,16 @@ const sendAutomatedEmail = async (req, res) => {
     }
 };
 
-async function sendVerificationEmail(userId) {
+async function sendVerificationEmail(userId){
+    console.log('userId', userId);
     try {
         const user = await User.findById(userId);
         console.log("user being verified:", user);
   
         if (user?.isVerified) {
             console.log("user.isVerified", user.isVerified);
-            res.status(400);
+            return res.status(400);
             throw new Error("User already verified");
-            //return; 
         }
         // Delete token if already exists
         const token = await Token.findOne({ userId: user._id });
@@ -336,7 +340,7 @@ async function sendVerificationEmail(userId) {
         console.error("Error sending verification email:", error);
         throw new BadRequestError("Error sending email");
     }
-}
+};
   
 // const verifyUser = async (req, res) => {
 // 	const { verificationToken } = req.params;
@@ -409,7 +413,7 @@ async function verifyUser(req, res) {
         console.err("Error verifying user:", err);
         return res.status(400).json({ err: "User verification failed" });
     }
-}
+};
 
 module.exports = { 
     register,

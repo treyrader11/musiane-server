@@ -15,7 +15,7 @@ router.post("/register", register);
 router.post("/login", login);
 router.post("/google/callback", loginWithGoogle);
 router.post("/sendAutomatedEmail", sendAutomatedEmail);
-router.post("/sendVerificationEmail", authorize, sendVerificationEmail);
+router.post("/sendVerificationEmail", sendVerificationEmail);
 router.patch("/verifyUser/:verificationToken", verifyUser);
 
 module.exports = router;

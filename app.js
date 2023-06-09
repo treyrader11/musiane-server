@@ -20,7 +20,6 @@ const app = express();
 const server = require("http").createServer(app);
 const { Server } = require("socket.io");
 
-// const io = new Server(server, { cors: { origin: clientURL } });
 const io = new Server(server, { cors: { origin: clientURL } });
 
 const PORT = process.env.PORT || 5002;
