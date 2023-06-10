@@ -18,14 +18,13 @@ const cryptr = new Cryptr(process.env.CRYPTR_KEY);
 
 const register = async (req, res) => {
 	let user = await User.findOne({ email: req.body.email });
+    console.log('req.body', req.body)
 	if (user) throw new BadRequestError("User already exists");
     const ua = parser(req.headers["user-agent"]);
     const userAgent = [ua.ua];
 	user = await User.create({ ...req.body, userAgent });
 	const { _id: id, name, profileImage, isVerified, role } = user;
 	const token = user.createJWT();
-
-    await sendVerificationEmail(id);
 
 	res.status(StatusCodes.CREATED).json({
 		id,
@@ -37,179 +36,16 @@ const register = async (req, res) => {
 	});
 };
 
-// Register User
-// const registerUser = async (req, res) => {
-//     const { name, email, password } = req.body;
-//     console.log("registerUser controller - req.body:", req.body);
-//     if (!name || !email || !password) {
-//         res.status(400);
-//         throw new Error("Please fill in all the required fields");
-//     }
-
-//     if (password.length < 6) {
-//         throw new Error("Password must contain at least 6 characters.");
-//     }
-
-//     // Check if user email already exists
-//     const userExists = await User.findOne({email});
-
-//     if (userExists) {
-//         res.status(400);
-//         throw new Error("Email already registered.");
-//     }
-
-//     const ua = parser(req.headers["user-agent"]);
-//     const userAgent = [ua.ua];
-
-//     const user = await User.create({
-//         ...req.body, 
-//         userAgent
-//     });
-
-//     const token = generateToken(user._id);
-
-//     res.cookie("token", token, {
-//         path: "/",
-//         httpOnly: true,
-//         expires: new Date(Date.now() + 1000 * 86400), // 1 day
-//         sameSite: "none",
-//         secure: true
-//     });
-
-//     if (user) {
-//        const { _id, name, email, profileImage, role, isVerified } = user;
-//         res.status(201).send({
-//             _id, 
-//             name, 
-//             email, 
-//             profileImage, 
-//             role, 
-//             isVerified,
-//         });
-//     } else {
-//         res.send(400);
-//         throw new Error("Invalid user data");
-//     };
-// };
-
-
-
-// const loginStatus = async (req, res) => {
-//     const { token } = req.cookies;
-
-//     if (!token) {
-//         res.json(false); 
-//         return;
-//     }
-
-//     try {
-//         const verified = jwt.verify(token, process.env.JWT_SECRET);
-//         if (verified) {
-//             res.json(true);
-//         } else {
-//             res.json(false);
-//         }
-//     } catch (error) {
-//         res.json(false);
-//     }
-// };
-
-
-// Login User
-// const loginUser = async (req, res) => {
-//     const { email, password } = req.body;
-//     console.log("user to login:", req.body);
-//     if (!email || !password) {
-//       res.status(400);
-//       throw new Error("Please add email and password");
-//     }
-  
-//     // Check if user exists
-//     const user = await User.findOne({ email });
-//     console.log('user', user)
-  
-//     if (!user) {
-//       res.status(400);
-//       throw new Error("User not found, please signup");
-//     }
-  
-//     // If User exists, check if password is correct
-//     const passwordIsCorrect = await bcrypt.compare(password, user.password);
-  
-//     if (!passwordIsCorrect) {
-//       res.status(400);
-//       throw new Error("Invalid email or password");
-//     }
-
-//      // Trigger 2FA for unknown userAgent/device
-//      const ua = parser(req.headers["user-agent"]);
-//      const thisUserAgent = ua.ua;
-//      console.log(thisUserAgent);
-//      const allowedDevice = user.userAgent.includes(thisUserAgent);
-   
-//      if (!allowedDevice) {
-//          const loginCode = Math.floor(100000 + Math.random() * 900000);
-//          console.log("access code:", loginCode);
-
-//          // Hash token before saving to DB
-//          const encryptedLoginCode = cryptr.encrypt(loginCode.toString());
-   
-//          // Delete token if it exists in DB
-//          let userToken = await Token.findOne({ userId: user._id });
-//          if (userToken) {
-//              await userToken.deleteOne();
-//          }
-   
-//          // Save Access Token to DB
-//          await new Token({
-//              userId: user._id,
-//              loginToken: encryptedLoginCode,
-//              createdAt: Date.now(),
-//              expiresAt: Date.now() + 60 * (60 * 1000) // Thirty minutes
-//          }).save();
-     
-//          res.status(400);
-//          throw new Error("New device detected. Please check your email for an access code.");
-//      }
-
-//      //   Generate Token
-//     const token = generateToken(user._id);
-//     if (user && passwordIsCorrect) {
-//         // Send HTTP-only cookie
-//         res.cookie("token", token, {
-//             path: "/",
-//             httpOnly: true,
-//             expires: new Date(Date.now() + 1000 * 86400), // 1 day
-//             sameSite: "none",
-//             secure: true
-//         });
-
-//         const { _id, name, email, photo, students, enrolledStudents, bio, isVerified, role } = user;
-//         res.status(200).json({
-//             _id,
-//             name,
-//             email,
-//             photo,
-//             students,
-//             enrolledStudents,
-//             bio,
-//             isVerified,
-//             role,
-//             token
-//         });
-//     } else {
-//         res.status(400);
-//         throw new Error("hmm... Something went wrong. Please try again");
-//     }
-// };
-
 const login = async (req, res) => {
 	const { email, password } = req.body;
 	if (!email || !password) throw new BadRequestError("Please provide email and password");
     const user = await User.findOne({ email });
+    console.log('user', user)
 	if (!user) throw new NotFoundError("User doesn't exist");
     const isPasswordCorrect = await user.comparePassword(password);
-	if (!isPasswordCorrect) throw new AuthenticationError("It's Ezio's password!! Enter yours");
+    //const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    console.log('isPasswordCorrect', isPasswordCorrect);
+	if (!isPasswordCorrect) throw new AuthenticationError("Invalid password");
 
     // Trigger 2FA for unknown userAgent/device
     const ua = parser(req.headers["user-agent"]);
@@ -234,7 +70,7 @@ const login = async (req, res) => {
         }).save();
         throw new BadRequestError("New device detected. To confirm it's you, please check your email for an access code");
     }
-    
+
 	const { _id: id, name, profileImage, isVerified, role } = user;
 	const token = user.createJWT();
 	res.status(StatusCodes.OK).json({
@@ -282,7 +118,6 @@ const loginWithGoogle = async (req, res) => {
                 });
             }
         }
-  
         if (user) {
             const { _id: id, name, profileImage, role, isVerified } = user;
             const token = user.createJWT();
@@ -291,8 +126,8 @@ const loginWithGoogle = async (req, res) => {
                 token,
                 name,
                 profileImage,
-                role,
                 isVerified,
+                role,
             });
         }
     } catch (err) {
@@ -322,17 +157,13 @@ const sendAutomatedEmail = async (req, res) => {
     }
 };
 
-async function sendVerificationEmail(userId){
-    console.log('userId', userId);
+const sendVerificationEmail = async (req, res) => {
+    const { userId } = req.body;
     try {
         const user = await User.findById(userId);
         console.log("user being verified:", user);
-  
-        if (user?.isVerified) {
-            console.log("user.isVerified", user.isVerified);
-            return res.status(400);
-            throw new Error("User already verified");
-        }
+        if (!user) throw new NotFoundError("User doesn't exist");
+        if (user.isVerified) throw new BadRequestError("User already verified");
         // Delete token if already exists
         const token = await Token.findOne({ userId: user._id });
         if (token) await token.deleteOne();
@@ -357,59 +188,52 @@ async function sendVerificationEmail(userId){
         const link = verificationUrl;
   
         await sendEmail(subject, send_to, sent_from, reply_to, template, name, link);
-        console.log("Email sent!");
-        return { message: "Verification email sent" };
-        } catch (error) {
-        console.error("Error sending verification email:", error);
-        throw new BadRequestError("Error sending email");
+        res.status(StatusCodes.CREATED).json({ msg: "Please check your email for verification link"})
+        } catch (err) {
+        throw new BadRequestError(err);
     }
 };
-  
+
 // const verifyUser = async (req, res) => {
-// 	const { verificationToken } = req.params;
-//     console.log("verifyUser - req.params:", req.params)
+//     try {
+//         const { verificationToken } = req.params;
+//         console.log("verifyUser - req.params:", req.params);
+//         const hashedToken = crypto
+//             .createHash("sha256")
+//             .update(verificationToken)
+//             .digest("hex");
+//         const userToken = await Token.findOne({
+//             vToken: hashedToken,
+//             expiresAt: { $gt: Date.now() },
+//         });
 
-//     const hashedToken = crypto
-//         .createHash("sha256")
-//         .update(verificationToken)
-//         .digest("hex");
-
-//     const userToken = await Token.findOne({
-//         vToken: hashedToken,
-//         expiresAt: { $gt: Date.now() },
-//     });
-
-//     if (!userToken) {
-//         res.status(404);
-//         throw new Error("Invalid or Expired Token!!!");
-//     }
-
-//     const user = await User.findById(userToken.userId);
-
-//     if (user.isVerified) {
-//         res.status(400);
-//         throw new Error("User is already verified");
-//     }
-
-// 	if (user) {
+//         if (!userToken) throw new BadRequestError("Invalid or expired token");
+//         const user = await User.findById(userToken.userId);
+//         if (!user) throw new NotFoundError("User not found");
+//         if (user.isVerified) throw new BadRequestError("User is already verified");
 //         user.isVerified = true;
 //         const verifiedUser = await user.save();
-//         console.log("verifiedUser.isVerified", verifiedUser.isVerified)
-
-//         res.status(200).json({ 
-//             message: "User is successfully verified", 
-//             isVerified: verifiedUser.isVerified,
+//         const { _id: id, name, profileImage, isVerified, role, token } = verifiedUser;
+//         console.log("verifiedUser", verifiedUser);
+//         res.status(StatusCodes.OK).json({
+//             id,
+//             name,
+//             profileImage,
+//             role,
+//             isVerified,
+//             token,
+//             msg: "User is successfully verified",
 //         });
-//     } else {
-//         res.send(404);
-//         throw new Error("User not found"); 
-//     };
-//     //next();
+//     } catch (err) {
+//         console.error("Error verifying user:", err);
+//         res.status(StatusCodes.BAD_REQUEST).json({ err: "Wups! Something went wrong" });
+//     }
 // };
 
-async function verifyUser(req, res) {
+const verifyUser = async (req, res) => {
     try {
         const { verificationToken } = req.params;
+        console.log('verificationToken', verificationToken)
         console.log("verifyUser - req.params:", req.params);
         const hashedToken = crypto
             .createHash("sha256")
@@ -420,21 +244,23 @@ async function verifyUser(req, res) {
             expiresAt: { $gt: Date.now() },
         });
 
-        if (!userToken) throw new Error("Invalid or expired token");
+        if (!userToken) throw new BadRequestError("Invalid or expired token");
         const user = await User.findById(userToken.userId);
-        if (!user) throw new Error("User not found");
-        if (user.isVerified) throw new Error("User is already verified");
-        
+        if (!user) throw new NotFoundError("User not found");
+        if (user.isVerified) {
+            //throw new BadRequestError("User is already verified");
+            return res.status(StatusCodes.BAD_REQUEST).json({ msg: "User is already verified" });
+        }
         user.isVerified = true;
         const verifiedUser = await user.save();
-        console.log("verifiedUser.isVerified", verifiedUser.isVerified);
-        return res.status(200).json({
-            message: "User is successfully verified",
+        console.log("verifiedUser", verifiedUser);
+        return res.status(StatusCodes.OK).json({
+            msg: "User is successfully verified",
             isVerified: verifiedUser.isVerified,
         });
     } catch (err) {
-        console.err("Error verifying user:", err);
-        return res.status(400).json({ err: "User verification failed" });
+        console.error("Error verifying user:", err);
+        res.status(StatusCodes.BAD_REQUEST).json({ msg: "Wups! Something went wrong" });
     }
 };
 

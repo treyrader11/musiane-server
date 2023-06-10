@@ -5,7 +5,6 @@ const authorize = (req, res, next) => {
 	const authHeader = req.headers.authorization;
 	console.log('authorize, authHeader', authHeader);
 	console.log('req.user', req.user);
-	console.log('req.headers:', req.cookies);
 	if (!authHeader || !authHeader.startsWith("Bearer")) {
 		throw new AuthenticationError("Authentication Invalid");
 	}
