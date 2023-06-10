@@ -35,7 +35,7 @@ const UserSchema = new mongoose.Schema(
       role: {
          type: String,
          required: true,
-         default: 'student'
+         default: "student"
        },
       userAgent: {
          type: Array,
@@ -62,7 +62,7 @@ UserSchema.pre("save", async function () {
 
 UserSchema.methods.createJWT = function () {
    return jwt.sign(
-      { id: this._id, name: this.name, profileImage: this.profileImage },
+      { id: this._id, name: this.name, profileImage: this.profileImage, role: this.role, isVerified: this.isVerified },
       process.env.JWT_SECRET,
       {
          expiresIn: process.env.JWT_LIFETIME,
@@ -74,4 +74,25 @@ UserSchema.methods.comparePassword = async function (pw) {
    const isCorrect = await bcrypt.compare(pw, this.password);
    return isCorrect;
 };
+
+// UserSchema.methods.createJWT = function () {
+//    const payload = {
+//       id: this._id,
+//       name: this.name,
+//       profileImage: this.profileImage,
+//       role: this.role,
+//       isVerified: this.isVerified
+//    };
+
+//    const signingOptions = {
+//       expiresIn: process.env.JWT_LIFETIME
+//    };
+
+//    return jwt.sign(payload, process.env.JWT_SECRET, signingOptions);
+// };
+
+// UserSchema.methods.comparePassword = async function (pw) {
+//    const isCorrect = await bcrypt.compare(pw, this.password);
+//    return isCorrect;
+// };
 module.exports = mongoose.model("User", UserSchema);

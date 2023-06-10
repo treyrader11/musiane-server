@@ -3,7 +3,6 @@
 require("dotenv/config");
 require("express-async-errors");
 const { clientURL } = require("./URI");
-const clientURI = process.env.FRONTEND_URL || clientURL;
 const fileUpload = require("express-fileupload");
 const express = require("express");
 const cloudinary = require("cloudinary").v2;
@@ -21,7 +20,6 @@ const app = express();
 const server = require("http").createServer(app);
 const { Server } = require("socket.io");
 
-// const io = new Server(server, { cors: { origin: clientURL } });
 const io = new Server(server, { cors: { origin: clientURL } });
 
 const PORT = process.env.PORT || 5002;

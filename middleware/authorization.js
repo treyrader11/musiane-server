@@ -4,9 +4,7 @@ const jwt = require("jsonwebtoken");
 const authorize = (req, res, next) => {
 	const authHeader = req.headers.authorization;
 	console.log('authorize, authHeader', authHeader);
-	console.log('req.body', req.body);
 	console.log('req.user', req.user);
-	console.log('req.cookies:', req.cookies);
 	if (!authHeader || !authHeader.startsWith("Bearer")) {
 		throw new AuthenticationError("Authentication Invalid");
 	}
