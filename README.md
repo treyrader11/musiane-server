@@ -455,3 +455,197 @@ The API includes the following endpoints for users.
     Content-Length: 2
 
     []
+
+# Videos
+
+The API includes the following endpoints for videos.
+
+## Add Video
+
+### Request
+
+`POST /video`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Update Video
+
+### Request
+
+`PUT /video/:id`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/:id
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Delete Video
+
+### Request
+
+`DELETE /video/:id`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/:id
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Get Video
+
+### Request
+
+`GET /video/find/:id`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/find/:id
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Add Video View
+
+### Request
+
+`PUT /video/view/:id`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/view/:id
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Get Video Trend
+
+### Request
+
+`GET /video/trend`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/trend
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Get All Videos
+
+### Request
+
+`GET /video/all`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/all
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Get Video Subscribers
+
+### Request
+
+`GET /video/sub`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/sub
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Get Video Tags
+
+### Request
+
+`GET /video/tags`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/tags
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Get Video Search
+
+### Request
+
+`GET /video/search`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/video/search
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
