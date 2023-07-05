@@ -394,3 +394,64 @@ The API includes the following endpoints for posts.
     Content-Length: 2
 
     []
+
+# Users
+
+The API includes the following endpoints for users.
+
+## Get User
+
+### Request
+
+`GET /user`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/user
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Update User
+
+### Request
+
+`PATCH /user`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/user
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
+
+## Update User DP
+
+### Request
+
+`PATCH /user/dp`
+
+    curl -i -H 'Accept: application/json' -d 'name=Foo&status=new' http://localhost:7000/user/dp
+
+### Response
+
+    HTTP/1.1 200 OK
+    Date: Thu, 24 Feb 2011 12:36:30 GMT
+    Status: 200 OK
+    Connection: close
+    Content-Type: application/json
+    Content-Length: 2
+
+    []
